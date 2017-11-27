@@ -557,6 +557,7 @@ static void process_timeouts(ares_channel channel, struct timeval *now)
             {
               query->error_status = ARES_ETIMEOUT;
               ++query->timeouts;
+              ++channel->servers[query->server].info.timeouts;
               next_server(channel, query, now);
             }
         }
@@ -657,11 +658,31 @@ static void process_answer(ares_channel channel, unsigned char *abuf,
     {
       if (rcode == SERVFAIL || rcode == NOTIMP || rcode == REFUSED)
         {
+          ++channel->servers[whichserver].info.errors;
           skip_server(channel, query, whichserver);
           if (query->server == whichserver)
             next_server(channel, query, now);
           return;
         }
+      if ((channel->flags & ARES_FLAG_RETRYNOTFOUND)
+          && (rcode == NXDOMAIN || DNS_HEADER_ANCOUNT(abuf) == 0))
+      {
+        query->error_status = ARES_ENOTFOUND;
+        ++channel->servers[query->server].info.errors;
+        next_server(channel, query, now);
+        return;
+      }
+
+      {
+        int rt;
+
+        ++channel->servers[whichserver].info.nok;
+        rt = ares__timeoffset(&query->server_info[whichserver].start,now);
+        if (rt > channel->servers[whichserver].info.maxrt) {
+            channel->servers[whichserver].info.maxrt = rt;
+        }
+        channel->servers[whichserver].info.sumrt += rt;
+      }        
     }
 
   end_query(channel, query, ARES_SUCCESS, abuf, alen);
@@ -716,6 +737,7 @@ static void handle_error(ares_channel channel, int whichserver,
   struct list_node* list_node;
 
   server = &channel->servers[whichserver];
+  ++server->info.errors;
 
   /* Reset communications with this server. */
   ares__close_sockets(channel, server);
@@ -871,6 +893,10 @@ void ares__send_query(ares_channel channel, struct query *query,
           return;
         }
     }
+    
+    query->server_info[query->server].start = *now;
+    ++server->info.nsent;
+    
     timeplus = channel->timeout << (query->try_count / channel->nservers);
     timeplus = (timeplus * (9 + (rand () & 7))) / 16;
     query->timeout = *now;

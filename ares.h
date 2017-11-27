@@ -145,6 +145,7 @@ extern "C" {
 #define ARES_FLAG_NOALIASES     (1 << 6)
 #define ARES_FLAG_NOCHECKRESP   (1 << 7)
 #define ARES_FLAG_EDNS          (1 << 8)
+#define ARES_FLAG_RETRYNOTFOUND (1 << 9)
 
 /* Option mask values */
 #define ARES_OPT_FLAGS          (1 << 0)
@@ -639,6 +640,16 @@ struct ares_addr_port_node {
   int tcp_port;
 };
 
+struct ares_server_info {
+    struct ares_addr_node addr;
+    int nsent;
+    int nok;
+    int timeouts;
+    int errors;
+    int maxrt;
+    int sumrt;
+};
+
 CARES_EXTERN int ares_set_servers(ares_channel channel,
                                   struct ares_addr_node *servers);
 CARES_EXTERN int ares_set_servers_ports(ares_channel channel,
@@ -654,6 +665,10 @@ CARES_EXTERN int ares_get_servers(ares_channel channel,
                                   struct ares_addr_node **servers);
 CARES_EXTERN int ares_get_servers_ports(ares_channel channel,
                                         struct ares_addr_port_node **servers);
+
+CARES_EXTERN int ares_get_server_info(ares_channel channel, 
+                                      struct ares_server_info* si, 
+                                      int num); 
 
 CARES_EXTERN const char *ares_inet_ntop(int af, const void *src, char *dst,
                                         ares_socklen_t size);

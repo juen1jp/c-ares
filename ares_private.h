@@ -185,6 +185,9 @@ struct server_state {
    * request that is queued for sending times out.
    */
   int is_broken;
+  
+  /* Structure to hold serve information */
+  struct ares_server_info info;
 };
 
 /* State to represent a DNS query */
@@ -227,6 +230,7 @@ struct query {
 struct query_server_info {
   int skip_server;  /* should we skip server, due to errors, etc? */
   int tcp_connection_generation;  /* into which TCP connection did we send? */
+  struct timeval start;  /* Timestamp for the beginning of the query */
 };
 
 /* An IP address pattern; matches an IP address X if X & mask == addr */

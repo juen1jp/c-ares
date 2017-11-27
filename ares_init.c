@@ -2620,8 +2620,21 @@ void ares__init_servers_state(ares_channel channel)
       server->tcp_length = 0;
       server->qhead = NULL;
       server->qtail = NULL;
+      memset(&server->info,0,sizeof(server->info));
       ares__init_list_head(&server->queries_to_server);
       server->channel = channel;
       server->is_broken = 0;
     }
+}
+
+int ares_get_server_info (ares_channel channel, struct ares_server_info *si, int num)
+{
+    int i;
+
+    for (i = 0; i < channel->nservers && i < num; i++) {
+        si[i] = channel->servers[i].info;
+        si[i].addr.family = channel->servers[i].addr.family;
+        memcpy(&si[i].addr.addr,&channel->servers[i].addr.addr,sizeof(si[i].addr.addr));
+    }
+    return i;
 }
